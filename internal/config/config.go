@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"context"
 	"io/ioutil"
 
 	"github.com/Katsusan/centaur/internal/util"
@@ -69,8 +70,13 @@ func NewConfig(ctx *cli.Context) *Config {
 	return cfg
 }
 
+//InitDB will initialize DB configuration
+func (c *Config) InitDB(ctx context.Context) error {
+	return c.connectToDB(ctx)
+}
+
 //connectToDB will establish a new connection to mysql.
-func (c *Config) connectToDB() error {
+func (c *Config) connectToDB(ctx context.Context) error {
 	DbDSN := c.DatabaseDSN()
 	log.Debugln("will connect to ", DbDSN)
 
@@ -92,6 +98,10 @@ func (c *Config) DatabaseDSN() string {
 		c.parm.DbServerPort,
 		c.parm.DbName,
 	)
+}
+
+func (c *Config) HttpServerPort() uint16 {
+	return c.parm.HttpServerPort
 }
 
 //LoadFromFile will read config from config file and parse it into *Params
