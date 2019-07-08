@@ -1,8 +1,8 @@
 package config
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 	"io/ioutil"
 
 	"github.com/Katsusan/centaur/internal/util"
@@ -89,6 +89,27 @@ func (c *Config) connectToDB(ctx context.Context) error {
 	return nil
 }
 
+//CloseDB will cut the connection to DB and return the error if failed.
+func (c *Config) CloseDB() error {
+	if c.db != nil {
+		if err := c.db.Close(); err != nil {
+			log.Error("failed to close DB connection")
+			return err
+		}
+		log.Info("DB connection closed")
+		c.db = nil
+	}
+	return nil
+}
+
+//ShutDown will release the using resources. inlcuding DB connection, ...
+func (c *Config) ShutDown() {
+	if err := c.CloseDB(); err != nil {
+		return
+	}
+	log.Info("ShutDown exec OK")
+}
+
 //DatabaseDSN will return the connect string of database
 func (c *Config) DatabaseDSN() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8&parseTime=true",
@@ -100,8 +121,34 @@ func (c *Config) DatabaseDSN() string {
 	)
 }
 
+//DaemonLogFile will return log output file at daemon mode
+func (c *Config) DaemonLogFile() string {
+	return c.parm.DaemonLogPath
+}
+
+//DaemonPidFile will return pid file at daemon mode
+func (c *Config) DaemonPidFile() string {
+	return c.parm.DaemonPidPath
+}
+
+//HttpServerHost will return the host ip which is listening for new connections.
+func (c *Config) HttpServerHost() string {
+	return c.parm.HttpServerHost
+}
+
+//HttpServerPort will return HTTP Server's using port.
 func (c *Config) HttpServerPort() uint16 {
 	return c.parm.HttpServerPort
+}
+
+//ShouldDaemonize will return true if daemon mode is set.
+func (c *Config) ShouldDaemonize() bool {
+	return c.parm.DaemonMode
+}
+
+//Debug will return true if server is set to running at debug mode.
+func (c *Config) Debug() bool {
+	return c.parm.Debug
 }
 
 //LoadFromFile will read config from config file and parse it into *Params
