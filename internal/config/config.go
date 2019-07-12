@@ -32,9 +32,11 @@ type Params struct {
 	DbName         string `yaml:"db-name" flag:"db-name"`
 	HttpServerHost string `yaml:"http-host" flag:"http-host"`
 	HttpServerPort uint16 `yaml:"http-port" flag:"http-port"`
+	HttpServerMode string `yaml:""http-server-mode flag:"http-server-mode"`
 	DaemonMode     bool   `yaml:"daemon" flag:"daemon"`
 	DaemonPidPath  string `yaml:"daemon-pid-path" flag:"daemon-pid-path"`
 	DaemonLogPath  string `yaml:"daemon-log-path" flag:"daemon-log-path"`
+	StaticPath     string `yaml:"static-path" flag:"static-path"`
 }
 
 func initLogger(debug bool) {
@@ -89,6 +91,11 @@ func (c *Config) connectToDB(ctx context.Context) error {
 	return nil
 }
 
+//DB will return DB connection.
+func (c *Config) DB() *gorm.DB {
+	return c.db
+}
+
 //CloseDB will cut the connection to DB and return the error if failed.
 func (c *Config) CloseDB() error {
 	if c.db != nil {
@@ -139,6 +146,16 @@ func (c *Config) HttpServerHost() string {
 //HttpServerPort will return HTTP Server's using port.
 func (c *Config) HttpServerPort() uint16 {
 	return c.parm.HttpServerPort
+}
+
+//HttpServerMode will return under which mode server will be running.
+func (c *Config) HttpServerMode() string {
+	return c.parm.HttpServerMode
+}
+
+//StaticPath will return where are static files stored.
+func (c *Config) StaticPath() string {
+	return c.parm.StaticPath
 }
 
 //ShouldDaemonize will return true if daemon mode is set.
