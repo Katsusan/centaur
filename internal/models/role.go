@@ -74,3 +74,11 @@ func (roles Roles) ToNames() []string {
 	}
 	return names
 }
+
+func (rolemenus RoleMenus) ToMenuIDs() []string {
+	menuids := make([]string, len(rolemenus))
+	for i, rolemenu := range rolemenus {
+		menuids[i] = rolemenu.MenuID
+	}
+	return menuids
+}
