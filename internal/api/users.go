@@ -12,7 +12,7 @@ import (
 func GetUserByID(router *gin.RouterGroup, conf *config.Config) {
 	router.GET("/:userid", func(c *gin.Context) {
 		userid := c.Param("userid")
-		var user models.UserDetail
+		var user models.User
 		if err := conf.DB().Where("id = ", userid).First(&user).Error; err != nil {
 			log.Errorf("failed to get user by id[%s], error=%v\n", userid, err)
 			c.AbortWithStatus(http.StatusNotFound)

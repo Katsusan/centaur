@@ -1,0 +1,5 @@
+package captch
+
+func InitCaptcha() {
+
+}

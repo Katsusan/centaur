@@ -25,6 +25,7 @@ type Params struct {
 	LogLevel       string `yaml:"log-level" flag:"log-level"`
 	ConfigFile     string
 	ConfigPath     string `yaml:"config-path" flag:"config-path"`
+	DbType         string `yaml:"db-type" flag:"db-type"`
 	DbServerHost   string `yaml:"db-host" flag:"db-host"`
 	DbServerPort   uint16 `yaml:"db-port" flag:"db-port"`
 	DbUserName     string `yaml:"db-user" flag:"db-user"`
