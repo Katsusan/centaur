@@ -12,6 +12,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var (
+	global *Config
+)
+
 type Config struct {
 	db   *gorm.DB
 	parm *Params
@@ -33,11 +37,22 @@ type Params struct {
 	DbName         string `yaml:"db-name" flag:"db-name"`
 	HttpServerHost string `yaml:"http-host" flag:"http-host"`
 	HttpServerPort uint16 `yaml:"http-port" flag:"http-port"`
-	HttpServerMode string `yaml:""http-server-mode flag:"http-server-mode"`
+	HttpServerMode string `yaml:"http-server-mode" flag:"http-server-mode"`
 	DaemonMode     bool   `yaml:"daemon" flag:"daemon"`
 	DaemonPidPath  string `yaml:"daemon-pid-path" flag:"daemon-pid-path"`
 	DaemonLogPath  string `yaml:"daemon-log-path" flag:"daemon-log-path"`
 	StaticPath     string `yaml:"static-path" flag:"static-path"`
+	CORS           *CORS  `yaml:"cors"`
+}
+
+//CORS 描述跨域请求配置
+type CORS struct {
+	CORSEnable       bool     `yaml:"cors-enable"`
+	AllowOrigins     []string `yaml:"allow-origins"`
+	AllowMethods     []string `yaml:"allow-methods"`
+	AllowHeaders     []string `yaml:"allow-headers"`
+	AllowCredentials bool     `yaml:"allow-credentials"`
+	MaxAge           int      `yaml:"max-age"`
 }
 
 func initLogger(debug bool) {
@@ -70,7 +85,17 @@ func NewConfig(ctx *cli.Context) *Config {
 		parm: NewParams((ctx)),
 	}
 
+	global = cfg
+
 	return cfg
+}
+
+func GetGlobalConfig() *Config {
+	if global == nil {
+		return &Config{}
+	}
+
+	return global
 }
 
 //InitDB will initialize DB configuration
@@ -157,6 +182,11 @@ func (c *Config) HttpServerMode() string {
 //StaticPath will return where are static files stored.
 func (c *Config) StaticPath() string {
 	return c.parm.StaticPath
+}
+
+//CORS will return CORS settings.
+func (c *Config) CORS() *CORS {
+	return c.parm.CORS
 }
 
 //ShouldDaemonize will return true if daemon mode is set.

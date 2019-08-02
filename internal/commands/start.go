@@ -3,10 +3,13 @@ package commands
 import (
 	"context"
 	"os"
+	"os/signal"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/Katsusan/centaur/internal/config"
+	"github.com/Katsusan/centaur/internal/server"
 	"github.com/Katsusan/centaur/internal/util"
 	daemon "github.com/sevlyar/go-daemon"
 	log "github.com/sirupsen/logrus"
@@ -85,7 +88,24 @@ func startAction(ctx *cli.Context) {
 	}
 
 	log.Infof("HTTP Server started at %s:%d\n", conf.HttpServerHost(), conf.HttpServerPort())
+	go server.Start(cctx, conf)
 
+	quit := make(chan os.Signal)
+	signal.Notify(quit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+
+	select {
+	case rc := <-quit:
+		log.Info("Shutting down, receive signal: %v\n", rc.String())
+		conf.ShutDown()
+		cancel()
+		err := dcxt.Release()
+		if err != nil {
+			log.Error(err)
+		}
+	}
+
+	time.Sleep(1 * time.Second)
+	return
 }
 
 //childAlreadyRunning will try to find  process corresponding to path file

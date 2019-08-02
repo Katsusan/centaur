@@ -2,9 +2,9 @@ package server
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/Katsusan/centaur/internal/config"
+	"github.com/Katsusan/centaur/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,15 +18,22 @@ func Start(c context.Context, conf *config.Config) {
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
 
-	router.Static("/", conf.StaticPath())
+	router.Use(middleware.TraceMiddleware())
 
-	router.Use(func(ctx *gin.Context) {
-		ctx.Header("Content-Tyoe", "application/json")
+	//是否启用跨域
+	if conf.CORS().CORSEnable {
+		router.Use(middleware.CORSMiddleware())
+	}
 
-		if ctx.Request.Method == "OPTIONS" {
-			ctx.AbortWithStatus(http.StatusNoContent)
-		}
-	})
+	/*
+		router.Use(func(ctx *gin.Context) {
+			ctx.Header("Content-Type", "application/json")
 
-	v := router.Group("/api/")
+			if ctx.Request.Method == "OPTIONS" {
+				ctx.AbortWithStatus(http.StatusNoContent)
+			}
+		})
+	*/
+
+	g := router.Group("/api/")
 }
