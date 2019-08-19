@@ -28,21 +28,23 @@ type Params struct {
 	Debug          bool   `yaml:"debug" flag:"debug"`
 	LogLevel       string `yaml:"log-level" flag:"log-level"`
 	ConfigFile     string
-	ConfigPath     string `yaml:"config-path" flag:"config-path"`
-	DbType         string `yaml:"db-type" flag:"db-type"`
-	DbServerHost   string `yaml:"db-host" flag:"db-host"`
-	DbServerPort   uint16 `yaml:"db-port" flag:"db-port"`
-	DbUserName     string `yaml:"db-user" flag:"db-user"`
-	DbPassword     string `yaml:"db-password" flag:"db-password"`
-	DbName         string `yaml:"db-name" flag:"db-name"`
-	HttpServerHost string `yaml:"http-host" flag:"http-host"`
-	HttpServerPort uint16 `yaml:"http-port" flag:"http-port"`
-	HttpServerMode string `yaml:"http-server-mode" flag:"http-server-mode"`
-	DaemonMode     bool   `yaml:"daemon" flag:"daemon"`
-	DaemonPidPath  string `yaml:"daemon-pid-path" flag:"daemon-pid-path"`
-	DaemonLogPath  string `yaml:"daemon-log-path" flag:"daemon-log-path"`
-	StaticPath     string `yaml:"static-path" flag:"static-path"`
-	CORS           *CORS  `yaml:"cors"`
+	ConfigPath     string   `yaml:"config-path" flag:"config-path"`
+	DbType         string   `yaml:"db-type" flag:"db-type"`
+	DbServerHost   string   `yaml:"db-host" flag:"db-host"`
+	DbServerPort   uint16   `yaml:"db-port" flag:"db-port"`
+	DbUserName     string   `yaml:"db-user" flag:"db-user"`
+	DbPassword     string   `yaml:"db-password" flag:"db-password"`
+	DbName         string   `yaml:"db-name" flag:"db-name"`
+	HttpServerHost string   `yaml:"http-host" flag:"http-host"`
+	HttpServerPort uint16   `yaml:"http-port" flag:"http-port"`
+	HttpServerMode string   `yaml:"http-server-mode" flag:"http-server-mode"`
+	DaemonMode     bool     `yaml:"daemon" flag:"daemon"`
+	DaemonPidPath  string   `yaml:"daemon-pid-path" flag:"daemon-pid-path"`
+	DaemonLogPath  string   `yaml:"daemon-log-path" flag:"daemon-log-path"`
+	StaticPath     string   `yaml:"static-path" flag:"static-path"`
+	CORS           *CORS    `yaml:"cors"`
+	RedisConf      *Redis   `yaml:"redis"`
+	CaptchaConf    *Captcha `yaml:"captcha"`
 }
 
 //CORS 描述跨域请求配置
@@ -53,6 +55,21 @@ type CORS struct {
 	AllowHeaders     []string `yaml:"allow-headers"`
 	AllowCredentials bool     `yaml:"allow-credentials"`
 	MaxAge           int      `yaml:"max-age"`
+}
+
+//Redis配置，包括连接参数以及key前缀
+type Redis struct {
+	Addr      string `yaml:"addr"`
+	Password  string `yaml:"password"`
+	KeyPrefix string `yaml:"key-prefix"`
+}
+
+//Captcha 指定验证码配置，包括验证码位数/高度/宽度/验证码的redis前缀等
+type Captcha struct {
+	Length      int    `yaml:"length"`
+	Width       int    `yaml:"width"`
+	Height      int    `yaml:"height"`
+	RedisPrefix string `yaml:"redis_prefix"`
 }
 
 func initLogger(debug bool) {
@@ -92,7 +109,8 @@ func NewConfig(ctx *cli.Context) *Config {
 
 func GetGlobalConfig() *Config {
 	if global == nil {
-		return &Config{}
+		log.Panicln("config should not be nil")
+		return nil
 	}
 
 	return global
@@ -184,14 +202,24 @@ func (c *Config) StaticPath() string {
 	return c.parm.StaticPath
 }
 
+//ShouldDaemonize will return true if daemon mode is set.
+func (c *Config) ShouldDaemonize() bool {
+	return c.parm.DaemonMode
+}
+
 //CORS will return CORS settings.
 func (c *Config) CORS() *CORS {
 	return c.parm.CORS
 }
 
-//ShouldDaemonize will return true if daemon mode is set.
-func (c *Config) ShouldDaemonize() bool {
-	return c.parm.DaemonMode
+//RedisConf will return Redis settings
+func (c *Config) RedisConf() *Redis {
+	return c.parm.RedisConf
+}
+
+//CaptchaConf returns Login Captcha config
+func (c *Config) CaptchaConf() *Captcha {
+	return c.parm.CaptchaConf
 }
 
 //Debug will return true if server is set to running at debug mode.

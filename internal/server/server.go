@@ -36,4 +36,5 @@ func Start(c context.Context, conf *config.Config) {
 	*/
 
 	g := router.Group("/api/")
+	v1 := g.Group("/v1")
 }

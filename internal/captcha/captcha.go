@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"time"
 
+	"github.com/Katsusan/centaur/internal/config"
+	"github.com/dchest/captcha"
 	"github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 )
@@ -72,5 +74,14 @@ func NewRedisStore(opts *redis.Options, prefix string, expiration time.Duration)
 }
 
 func InitCaptcha() {
-
+	cfg := config.GetGlobalConfig()
+	redisConf := cfg.RedisConf()
+	captcha.SetCustomStore(NewRedisStore(
+		&redis.Options{
+			Addr:     redisConf.Addr,
+			Password: redisConf.Password,
+		},
+		redisConf.KeyPrefix,
+		captcha.Expiration,
+	))
 }
