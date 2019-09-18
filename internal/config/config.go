@@ -45,6 +45,7 @@ type Params struct {
 	CORS           *CORS    `yaml:"cors"`
 	RedisConf      *Redis   `yaml:"redis"`
 	CaptchaConf    *Captcha `yaml:"captcha"`
+	SuperAdmin     *SpAdmin `yaml:"superadmin"`
 }
 
 //CORS 描述跨域请求配置
@@ -70,6 +71,12 @@ type Captcha struct {
 	Width       int    `yaml:"width"`
 	Height      int    `yaml:"height"`
 	RedisPrefix string `yaml:"redis_prefix"`
+}
+
+type SpAdmin struct {
+	UserName string `yaml:"username"`
+	RealName string `yaml:"realname"`
+	Password string `yaml:"password"`
 }
 
 func initLogger(debug bool) {
@@ -221,6 +228,12 @@ func (c *Config) RedisConf() *Redis {
 func (c *Config) CaptchaConf() *Captcha {
 	return c.parm.CaptchaConf
 }
+
+//SuperAdmin returns User who owns root permission
+func (c *Config) SuperAdmin() *SpAdmin {
+	return c.parm.SuperAdmin
+}
+
 
 //Debug will return true if server is set to running at debug mode.
 func (c *Config) Debug() bool {

@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"github.com/Katsusan/centaur/internal/config"
 	"github.com/jinzhu/gorm"
 )
 
@@ -86,8 +87,14 @@ type Profile struct {
 }
 
 type UserRole struct {
-	RoleID     string
+	gorm.Model
+	UserID     string `gorm:"column:user_id"`
+	RoleID     string `gorm:"column:role_id"`
 	ExpireDate time.Time
+}
+
+func (role UserRole) TableName() string {
+	return "user_role"
 }
 
 type UserRoles []*UserRole
@@ -128,6 +135,41 @@ func (User) TableName() string {
 	return "user_tb"
 }
 
+func UserQuery(params UserQueryParam, opts ...UserQueryOptions) (*UserQueryResult, error) {
+	db := config.GetGlobalConfig().DB()
+
+	if v := params.UserName; v != "" {
+		db = db.Where("username=?", v)
+	}
+
+	if v := params.UserNameLike; v != "" {
+		db = db.Where("username LIKE ?", "%"+v+"%")
+	}
+
+	if v := params.RealNameLike; v != "" {
+		db = db.Where("realname LIKE ?", "%"+v+"%")
+	}
+
+	if v := params.Status; v > 0 {
+		db = db.Where("status=?", v)
+	}
+
+	if v := params.RoleIDs; len(v) > 0 {
+		subQuery := db.Model(UserRole{}).Select("user_id").Where("role_in IN(?)", v).SubQuery()
+		db = db.Where("record_id IN(?)", subQuery)
+	}
+
+	db = db.Order("id DESC")
+
+	var opt UserQueryOptions
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+
+	var list Users
+
+}
+
 //ToRoleIDs will traverse UserRoles and return aggregation of every userrole's roleid.
 func (uRoles UserRoles) ToRoleIDs() []string {
 	roleIDs := make([]string, len(uRoles))
@@ -137,12 +179,12 @@ func (uRoles UserRoles) ToRoleIDs() []string {
 	return roleIDs
 }
 
-func (users Users) ToRoleIDs() []string {
+func (usrs Users) ToRoleIDs() []string {
 	var roleIDs []string
-	for _, u := range users {
+	for _, u := range usrs {
 		roleIDs = append(roleIDs, u.Roles.ToRoleIDs()...)
 	}
 	return roleIDs
 }
 
-func (users Users) ToPageShows() []*PaginationResult
+func (usrs Users) ToPageShows() []*PaginationResult
