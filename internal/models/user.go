@@ -1,10 +1,12 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Katsusan/centaur/internal/config"
 	"github.com/jinzhu/gorm"
+	log "github.com/sirupsen/logrus"
 )
 
 type User struct {
@@ -13,7 +15,7 @@ type User struct {
 	RealName          string    `gorm:"column:realname"`
 	Orgid             string    `gorm:"column:orgid"`
 	Password          string    `gorm:"column:password"`
-	Status            string    `gorm:"column:status"`
+	Status            int       `gorm:"column:status"`
 	Roles             UserRoles `gorm:"column:roles"`
 	Expireddate       time.Time `gorm:"column:expireddate"`
 	Logintime         time.Time `gorm:"column:logintime"`
@@ -135,6 +137,7 @@ func (User) TableName() string {
 	return "user_tb"
 }
 
+//UserQuery will return UserQueryResult by given UserQueryParam(UserName,RealName,etc...) and UserQueryOptions
 func UserQuery(params UserQueryParam, opts ...UserQueryOptions) (*UserQueryResult, error) {
 	db := config.GetGlobalConfig().DB()
 
@@ -167,7 +170,36 @@ func UserQuery(params UserQueryParam, opts ...UserQueryOptions) (*UserQueryResul
 	}
 
 	var list Users
+	pageRes, err := WrapQuery(db, opt.PageParam, &list)
+	if err != nil {
+		log.Println("Wrap User Query failed(error=%v)", err)
+		return nil, fmt.Errorf("WrapUserQueryError")
+	}
 
+	queryRes := &UserQueryResult{
+		PageRes: pageRes,
+		Res:     list,
+	}
+
+	return queryRes, nil
+}
+
+func WrapQuery(db *gorm.DB, param *PaginationParam, out interface{}) (*PaginationResult, error) {
+	if param != nil && param.PageIndex >= 0 && param.PageSize > 0 {
+		var count int
+		res := db.Count(&count)
+		if err := res.Error; err != nil {
+			return nil, err
+		} else if count == 0 {
+			return &PaginationResult{
+				Total: 0,
+			}, nil
+		}
+		db = db.Offset((param.PageIndex - 1) * param.PageSize).Limit(param.PageSize)
+	}
+
+	res := db.Find(out)
+	return nil, res.Error
 }
 
 //ToRoleIDs will traverse UserRoles and return aggregation of every userrole's roleid.

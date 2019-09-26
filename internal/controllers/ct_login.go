@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/Katsusan/centaur/internal/config"
+	"github.com/Katsusan/centaur/internal/gincommon"
+	"github.com/Katsusan/centaur/internal/models"
 	"github.com/dchest/captcha"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -113,4 +115,21 @@ func Login(c *gin.Context) {
 		}
 	}
 
+	qusers, err := models.UserQuery(models.UserQueryParam{
+		UserName: param.UserName,
+	})
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, &ErrorResponse{Code: "QueryUserInfoFailed", Message: "服务器内部错误，请再尝试一次"})
+	} else if len(qusers.Res) == 0 {
+		c.AbortWithStatusJSON(http.StatusOK, &ErrorResponse{Code: "UserNameNotExist", Message: "请输入正确的用户名"})
+	}
+
+	u := qusers.Res[0]
+	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(param.Password)); err != nil {
+		c.AbortWithStatusJSON(http.StatusOK, &ErrorResponse{Code: "PasswordNotCorrect", Message: "请输入正确的密码"})
+	} else if u.Status != 1 {
+		c.AbortWithStatusJSON(http.StatusOK, &ErrorResponse{Code: "UserDisabled", Message: "用户处于不可用状态"})
+	}
+
+	gincommon.SetUserID(c, u.Username)
 }
