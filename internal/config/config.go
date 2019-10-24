@@ -46,6 +46,7 @@ type Params struct {
 	RedisConf      *Redis   `yaml:"redis"`
 	CaptchaConf    *Captcha `yaml:"captcha"`
 	SuperAdmin     *SpAdmin `yaml:"superadmin"`
+	JWTConf        *JWT     `yaml:"jwt"`
 }
 
 //CORS 描述跨域请求配置
@@ -77,6 +78,13 @@ type SpAdmin struct {
 	UserName string `yaml:"username"`
 	RealName string `yaml:"realname"`
 	Password string `yaml:"password"`
+}
+
+type JWT struct {
+	SigningMethod string `yaml:"signing_method"`
+	SigningKey    string `yaml:"signing_key"`
+	Expired       int    `yaml:"expired"`
+	RedisPrefix   string `yaml:"redis_prefix"`
 }
 
 func initLogger(debug bool) {
@@ -234,6 +242,10 @@ func (c *Config) SuperAdmin() *SpAdmin {
 	return c.parm.SuperAdmin
 }
 
+//JWTConf will return JWT authentication config(config.JWT)
+func (c *Config) JWTConf() *JWT {
+	return c.parm.JWTConf
+}
 
 //Debug will return true if server is set to running at debug mode.
 func (c *Config) Debug() bool {
