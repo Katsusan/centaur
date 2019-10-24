@@ -1,13 +1,15 @@
 package jwtauth
 
 import (
+	"errors"
 	"time"
 
 	"github.com/Katsusan/centaur/internal/config"
 	"github.com/dgrijalva/jwt-go"
+	log "github.com/sirupsen/logrus"
 )
 
-var jwtauth *JWTAuth
+var JWTentity *JWTAuth
 
 func init() {
 	rediscfg := config.GetGlobalConfig().RedisConf()
@@ -21,7 +23,26 @@ func init() {
 	var opts []Option
 	opts = append(opts, SetExpireTime(jwtcfg.Expired))
 	opts = append(opts, SetSigningKey(jwtcfg.SigningKey))
+	opts = append(opts, SetKeyfunc(func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("InvalidSigningMethod")
+		}
+		return []byte(DefaultSigningKey), nil
+	}))
 
+	switch jwtcfg.SigningMethod {
+	case "HS256":
+		opts = append(opts, SetSigningMethod(jwt.SigningMethodHS256))
+	case "HS384":
+		opts = append(opts, SetSigningMethod(jwt.SigningMethodHS384))
+	case "HS512":
+		opts = append(opts, SetSigningMethod(jwt.SigningMethodHS512))
+	default:
+		log.Println("SigningMethod not set in jwt config, will be set default HS512")
+		opts = append(opts, SetSigningMethod(jwt.SigningMethodHS512))
+	}
+
+	JWTentity = NewJWTAuth(s, opts...)
 }
 
 type JWTAuth struct {
@@ -35,7 +56,7 @@ type Storer interface {
 	//验证token是否存在
 	Verify(token string) (bool, error)
 	//关闭存储
-	Close() error
+	Close()
 }
 
 type TokenInfo struct {
@@ -81,6 +102,17 @@ func (auth *JWTAuth) GenerateToken(userID string) (*TokenInfo, error) {
 	return tokeinfo, nil
 }
 
-func (auth *JWTAuth) ParseToken(token string) {
-	token, err := jwt.ParseWithClaims(token, &jwt.StandardClaims{}, nil)
+//解析令牌
+func (auth *JWTAuth) ParseToken(token string) (*jwt.StandardClaims, error) {
+	t, err := jwt.ParseWithClaims(token, &jwt.StandardClaims{}, auth.opts.keyfunc)
+	if err != nil {
+		return &jwt.StandardClaims{}, err
+	}
+
+	return t.Claims.(*jwt.StandardClaims), nil
+}
+
+//销毁令牌
+func (auth *JWTAuth) DestroyToken() error {
+
 }
