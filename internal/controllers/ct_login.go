@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/Katsusan/centaur/internal/auth/jwtauth"
 	"github.com/Katsusan/centaur/internal/config"
 	"github.com/Katsusan/centaur/internal/gincommon"
 	"github.com/Katsusan/centaur/internal/models"
@@ -92,7 +93,7 @@ func GetCaptchaImage(c *gin.Context) {
 //@Failure 400 ErrorResponse {Code:"ParameterParsingFail", Message:"需提交Username,Password,CaptchaID,CaptchaCode" }
 //@Failure 200 ErrorResponse {Code: "CaptchaCodeNotCorrect", Message: "请输入正确的验证码"}
 //@Failure 200 ErrorResponse {Code: "UserNameOrPasswordNotCorrect", Message:"请输入正确的用户名或密码"}
-//@Failure 500 ErrorResponse {Code:"", Message:""}
+//@Failure 500 ErrorResponse {Code:"JWTNotReady", Message:"生成JWT失败"}
 // @Router POST /api/v1/login
 func Login(c *gin.Context) {
 	var param LoginParam
@@ -132,4 +133,53 @@ func Login(c *gin.Context) {
 	}
 
 	gincommon.SetUserID(c, u.Username)
+
+	token, err := jwtauth.JWTentity.GenerateToken(u.Username)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, &ErrorResponse{Code: "JWTNotReady", Message: "生成JWT失败"})
+	}
+
+	c.JSON(http.StatusOK, &LoginToken{
+		AccessToken: token.Token,
+		TokenType:   token.TokenType,
+		ExpiresAt:   token.ExpiredAt,
+	})
+
+}
+
+//Logout 用户登出
+//@Summary 用户登出
+//@Param Authorization header string false "Bearer 用户令牌"
+//@Succcess 200 {"Status": "OK"}
+//@Router POST /api/v1/logout
+func Logout(c *gin.Context) {
+	userID := gincommon.GetUserID(c)
+	if userID != "" {
+		err := jwtauth.JWTentity.DestroyToken(gincommon.GetToken(c))
+		if err != nil {
+			log.Errorf("Logout(): logout failed, error=%v\n", err)
+		}
+		log.Printf("user[%v] logout successfully\n", userID)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"Status": "OK",
+	})
+}
+
+//RefreshToken 刷新用户令牌
+//@Summary 重新生成令牌
+//@Success 200
+//@Failure 500 ErrorResponse {Code:"JWTNotReady", Message:"生成JWT失败"}
+func RefreshToken(c *gin.Context) {
+	token, err := jwtauth.JWTentity.GenerateToken(gincommon.GetUserID(c))
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, &ErrorResponse{Code: "JWTNotReady", Message: "生成JWT失败"})
+	}
+
+	c.JSON(http.StatusOK, &LoginToken{
+		AccessToken: token.Token,
+		TokenType:   token.TokenType,
+		ExpiresAt:   token.ExpiredAt,
+	})
 }
