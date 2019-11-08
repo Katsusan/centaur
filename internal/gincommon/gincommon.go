@@ -1,6 +1,8 @@
 package gincommon
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,4 +16,14 @@ func SetUserID(c *gin.Context, userID string) {
 
 func GetUserID(c *gin.Context) string {
 	return c.GetString(UserIDString)
+}
+
+func GetToken(c *gin.Context) string {
+	var jwttoken string
+	authHeader := c.GetHeader("Autherization")
+	jwtPrefix := "Bearer "
+	if authHeader != "" && strings.HasPrefix(authHeader, jwtPrefix) {
+		jwttoken = authHeader[len(jwtPrefix):]
+	}
+	return jwttoken
 }

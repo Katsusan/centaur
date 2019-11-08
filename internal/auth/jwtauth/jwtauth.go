@@ -112,7 +112,14 @@ func (auth *JWTAuth) ParseToken(token string) (*jwt.StandardClaims, error) {
 	return t.Claims.(*jwt.StandardClaims), nil
 }
 
-//销毁令牌
-func (auth *JWTAuth) DestroyToken() error {
+//DestroyToken 销毁令牌
+func (auth *JWTAuth) DestroyToken(token string) error {
+	claim, err := auth.ParseToken(token)
+	if err != nil {
+		return err
+	}
 
+	//算出剩余过期时间然后放入store，如果已过期则不操作
+	expired := time.Unix(claim.ExpiresAt, 0).Sub(time.Now())
+	return auth.store.Set(token, expired)
 }

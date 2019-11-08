@@ -17,10 +17,14 @@ const (
 	DEFAULT_CAPTCHAID_LENGTH = 4
 )
 
+type StatusResponse struct {
+	Status string `json:"status"`
+}
+
 type ErrorResponse struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
-	Detail  string `json:"detail"`
+	Data    string `json:"data"`
 }
 
 type LoginCaptcha struct {
@@ -38,6 +42,11 @@ type LoginToken struct {
 	AccessToken string `json:"access_token"`
 	TokenType   string `json:"token_type"`
 	ExpiresAt   int64  `json:"expires_at"`
+}
+
+type UpdatePasswordParam struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
 }
 
 //GetCaptchaID	获取验证码ID
@@ -75,8 +84,7 @@ func GetCaptchaImage(c *gin.Context) {
 	if err != nil {
 		if err == captcha.ErrNotFound {
 			c.JSON(http.StatusBadRequest, &ErrorResponse{Code: "CaptchaIDNotFound",
-				Message: "无效的captchaID",
-				Detail:  "please use /api/v1/login/captchaid to fetch captchaID first"})
+				Message: "无效的captchaID, 请先用 /api/v1/login/captchaid 取得captchaID"})
 		}
 		log.Println("Error occured when generating captcha image, error=", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, &ErrorResponse{Code: "CaptchaGenerationFail", Message: "生成验证码图片时发生错误"})
@@ -90,7 +98,7 @@ func GetCaptchaImage(c *gin.Context) {
 //Login 用户登录
 //@Summary 验证用户提交
 //@Success 200 LoginToken {Code: "LoginOK", LoginToken: {access_token:"", token_type:"", expires_at:""}}
-//@Failure 400 ErrorResponse {Code:"ParameterParsingFail", Message:"需提交Username,Password,CaptchaID,CaptchaCode" }
+//@Failure 400 ErrorResponse {Code:"ParametersMissing", Message:"需提交Username,Password,CaptchaID,CaptchaCode" }
 //@Failure 200 ErrorResponse {Code: "CaptchaCodeNotCorrect", Message: "请输入正确的验证码"}
 //@Failure 200 ErrorResponse {Code: "UserNameOrPasswordNotCorrect", Message:"请输入正确的用户名或密码"}
 //@Failure 500 ErrorResponse {Code:"JWTNotReady", Message:"生成JWT失败"}
@@ -100,7 +108,7 @@ func Login(c *gin.Context) {
 
 	//确认提交参数
 	if err := c.ShouldBindJSON(&param); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, &ErrorResponse{Code: "ParameterParsingFail", Message: "需提交Username,Password,CaptchaID,CaptchaCode"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, &ErrorResponse{Code: "ParametersMissing", Message: "需提交Username,Password,CaptchaID,CaptchaCode"})
 	}
 
 	//检查验证码
@@ -169,7 +177,8 @@ func Logout(c *gin.Context) {
 
 //RefreshToken 刷新用户令牌
 //@Summary 重新生成令牌
-//@Success 200
+//@Success 200 LoginToken {Code: "LoginOK", LoginToken: {access_token:"", token_type:"", expires_at:""}}
+//@Failure 401
 //@Failure 500 ErrorResponse {Code:"JWTNotReady", Message:"生成JWT失败"}
 func RefreshToken(c *gin.Context) {
 	token, err := jwtauth.JWTentity.GenerateToken(gincommon.GetUserID(c))
@@ -182,4 +191,20 @@ func RefreshToken(c *gin.Context) {
 		TokenType:   token.TokenType,
 		ExpiresAt:   token.ExpiredAt,
 	})
+}
+
+//UpdatePassword 修改用户密码
+//@Summary 修改密码
+//@Param Authenrization header string false "Bearer token"
+//@Param body body UpdatePasswordParam true
+//@Success 200
+//@Failure 400 ErrorResponse {Code:"MissingParameters", Message:"需要old_password, new_password"}
+func UpdatePassword(c *gin.Context) {
+	var params UpdatePasswordParam
+
+	if err := c.ShouldBindJSON(&params); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, &ErrorResponse{Code: "MissingParameters", Message: "需要old_password, new_password"})
+	}
+
+	c.JSON(http.StatusOK, &StatusResponse{Status: "OK"})
 }
